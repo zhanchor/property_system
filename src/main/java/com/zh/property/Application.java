@@ -1,0 +1,24 @@
+package com.zh.property;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
+
+import com.zh.property.util.PortUtil;
+import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+@SpringBootApplication
+@EnableCaching
+@EnableElasticsearchRepositories(basePackages="com.zh.property.es")
+@EnableJpaRepositories(basePackages = {"com.zh.property.dao","com.zh.property.pojo"})
+public class Application {
+    static {
+        PortUtil.checkPort(6379,"Redis 服务端",true);
+        PortUtil.checkPort(9300,"ElasticSearch 服务器",true);
+        PortUtil.checkPort(5601,"Kibana 工具",true);
+    }
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}

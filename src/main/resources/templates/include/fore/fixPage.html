@@ -1,0 +1,164 @@
+<div th:fragment="html">
+    <script>
+        $(function(){
+            var oid=getUrlParms("oid");
+            var data4Vue={
+                uri:"workorders",
+                workorder:{orderCode:"",customer:{name:"",address:"",contact:""},errordescription:"",createDate:"",receiveDate:""},
+                conditionOrderImages:[],
+                file:null
+            };
+            var vue=new Vue({
+                el:"#workingArea",
+                data:data4Vue,
+                mounted:function(){
+                    this.load();
+                    this.listConditions();
+                },
+                methods:{
+                    load:function(){
+                        var url=this.uri+"/"+oid;
+                        axios.get(url).then(function(response){
+                            vue.workorder=response.data;
+                        })
+                    },
+                    listConditions:function(){
+                        var url=this.uri+"/"+oid+"/orderImages?type=condition";
+                        axios.get(url).then(function(response){
+                            vue.conditionOrderImages=response.data;
+                        })
+                    },
+                    addCondition:function(){
+                        if(!checkFileEmpty(this.file,"现场图片"))
+                            return;
+                        var url="orderImages?type=condition&oid="+oid;
+                        var formData=new FormData();
+                        formData.append("image",this.file);
+                        axios.post(url,formData).then(function(response){
+                            if(0==response.data.code){
+                                vue.listConditions();
+                                $("#conditionPic").val('');
+                                vue.file=null;
+                            }else{
+                                alert(response.data.message);
+                            }
+                        });
+                    },
+                    deletePic:function(id){
+                        if(!checkDeleteLink()){
+                            return;
+                        }
+                        var url="orderImages/"+id;
+                        axios.delete(url).then(function(response){
+                            if(0==response.data.code){
+                                vue.listConditions();
+                            }else{
+                                alert(response.data.message);
+                            }
+                        })
+                    },
+                    fixOrder:function(){
+                        if(!checkLink("开始处理")){
+                            return;
+                        }
+                        var url="forefixing?oid="+oid;
+                        axios.get(url).then(function(response){
+                            if(0==response.data.code){
+                                location.href="workorder";
+                            }else{
+                                alert(response.data.message);
+                            }
+                        })
+                    },
+                    getConditionFile:function(event){
+                        this.file=event.target.files[0];
+                    }
+                }
+            })
+        })
+    </script>
+    <div class="fixPageDiv">
+        <div class="messageshow">
+            <div style="font-size: 20px;margin: 20px 20px; ">工单信息</div>
+            <table class="table" style="margin: 20px 20px;">
+                <tr >
+                    <td>工单码：</td>
+                    <td>{{workorder.orderCode}}</td>
+                </tr>
+                <tr>
+                    <td>客户单位：</td>
+                    <td>{{workorder.customer.name}}</td>
+                </tr>
+                <tr>
+                    <td>客户地址：</td>
+                    <td>{{workorder.customer.address}}</td>
+                </tr>
+                <tr>
+                    <td>客户电话：</td>
+                    <td>{{workorder.customer.contact}}</td>
+                </tr>
+                <tr>
+                    <td>问题描述：</td>
+                    <td>{{workorder.errordescription}}</td>
+                </tr>
+                <tr>
+                    <td>创建时间：</td>
+                    <td>{{workorder.createDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+                <tr>
+                    <td>接收时间：</td>
+                    <td>{{workorder.receiveDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="div4pic">
+            <table class="addPictureTable" align="center">
+                <tr>
+                    <td class="addPictureTableTD">
+                        <div class="panel panel-warning addPictureDiv">
+                            <div class="panel-heading" style="width:400px">新增现场图片</div>
+                            <div class="panel-body" style="width:400px">
+                                <table class="addTable">
+                                    <tr>
+                                        <td>请选择图片</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input id="conditionPic" type="file" @change="getConditionFile($event)" name="image" />
+                                        </td>
+                                    </tr>
+                                    <tr class="submitTR">
+                                        <td align="center">
+                                            <button type="submit" @click="addCondition" class="btn btn-success">提交</button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <table class="table-striped table-bordered table-hover table-condensed" width="400px">
+                            <thead>
+                            <tr class="success">
+                                <th>ID</th>
+                                <th>现场图片</th>
+                                <th>删除</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="oi in conditionOrderImages">
+                                <td>{{oi.id}}</td>
+                                <td><a title="点击查看原图" :href="'orderCondition/'+oi.id+'.jpg'">
+                                    <img height="150px" :src="'orderCondition/'+oi.id+'.jpg'">
+                                </a></td>
+                                <td><a href="#nowhere" @click="deletePic(oi.id)"><span class="glyphicon glyphicon-trash"></span></a></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="submitOrderDiv">
+            <button type="submit" class="submitOrderButton" @click="fixOrder">开始处理</button>
+        </div>
+    </div>
+</div>

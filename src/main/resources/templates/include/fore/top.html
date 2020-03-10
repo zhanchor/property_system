@@ -1,0 +1,27 @@
+<nav class="top" th:fragment="html">
+	<a th:href="${application.contextPath}">
+		<span style="color:#C40000;margin:0px" class=" glyphicon glyphicon-home redColor"></span>
+		系统首页
+	</a>
+
+	<span>嗨，欢迎来维保系统</span>
+
+	<span th:if="${null!=session.user}">
+		<a href="login" th:text="${session.user.name}"></a>
+		<a href="forelogout" >退出</a>
+	</span>
+
+	<span th:if="${null==session.user}">
+		<a href="login">请登录</a>
+		<a href="register">免费注册</a>
+	</span>
+
+
+	<span class="pull-right">
+		<a href="workorder">我的工单</a>
+		<a th:if="${null!=session.user&&1==session.user.admin}" href="admin">前往后台</a>
+	</span>
+</nav>
+
+
+

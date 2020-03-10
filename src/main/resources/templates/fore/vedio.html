@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,minimal-ui" />
+    <meta charset="UTF-8">
+    <title>自动播放</title>
+</head>
+<body>
+<!-- 使用相对协议，同时支持http和https -->
+<script src='//vm.gtimg.cn/tencentvideo/txp/js/txplayer.js'></script>
+<script>
+    var player = new Txplayer({
+        containerId: 'container',
+        vid: 'z0930pjdjn3',
+        width: '100%',
+        height: screen.availHeight/3,
+        // 自动播放
+        autoplay: true
+    });
+</script>
+
+<div id="container"></div>
+
+</body>
+</html>

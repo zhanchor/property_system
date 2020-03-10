@@ -1,0 +1,69 @@
+<div class th:fragment="html"> 
+	<script>
+		$(function(){
+			var keyword = getUrlParms("keyword");
+	        var data4Vue = {
+	        		uri:'foresearch',
+	        		workorders:[]
+	        };
+	        //ViewModel
+	        var vue = new Vue({
+	            el: '#workingArea',
+	            data: data4Vue,
+	            mounted:function(){ //mounted　表示这个 Vue 对象加载成功了
+	            	this.load();
+	            },        
+	            methods: {
+	            	load:function(){
+	                    var url =  this.uri+"?keyword="+keyword;
+	                    axios.post(url).then(function(response) {
+	            	        vue.workorders = response.data;
+	                        vue.$nextTick(function(){
+	        	            	linkDefaultActions();
+	                        })
+	                    });
+	            	}
+	            }
+	        });       			
+		})
+	</script>
+
+	<div id="searchResult">
+		<div class="searchResultDiv">
+			<div class="orderListItem">
+				<table v-for="o in workorders" class="orderListItemTable" :orderStatus="o.status" :oid="o.id" >
+					<tr class="orderListItemFirstTR">
+						<td colspan="5">
+							<span>创建时间：<b>{{o.createDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</b></span>
+							<span style="margin:0px 10px">工单码：{{o.orderCode}}</span>
+							<span>工单状态：{{o.statusDesc}}</span>
+						</td>
+					</tr>
+					<tr>
+						<td>{{o.customer.name}}</td>
+						<td width="100px">{{o.customer.contact}}</td>
+						<td width="200px" style="text-align:center">{{o.customer.address}}</td>
+						<td width="200px">{{o.errordescription}}</td>
+						<td width="100px">
+							<a :href="'details?oid='+o.id" >
+								<button class="orderListItemConfirm" style="margin-bottom: 5px">查看详情</button>
+							</a>
+							<a v-if="o.status=='waitReceive'" >
+								<button class="orderListItemConfirm" @click="receive(o.id)">确认接收</button>
+							</a>
+
+							<a v-if="o.status=='waitFix'" :href="'fix?oid='+o.id">
+								<button class="orderListItemConfirm">开始处理</button>
+							</a>
+
+							<a v-if="o.status=='waitFinish'" :href="'finish?oid='+o.id">
+								<button class="orderListItemConfirm">处理完成</button>
+							</a>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div v-if="0 == workorders.length" class="noMatch">没有满足条件的工单</div>
+		</div>
+	</div>
+</div>

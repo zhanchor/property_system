@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="include/admin/adminHeader::html('设备管理')" ></head>
+<body>
+<div th:replace="include/admin/adminNavigator::html" ></div>
+<script>
+    $(function(){
+        var cid = getUrlParms("cid");
+        var data4Vue = {
+            uri:'equipments',
+            beans: [],
+            bean: {id:0,name:'',location:'',type:'',status:'',equipman:'',equipmentDate:'',useDate:'',customer:{"id":0}},
+            pagination:{},
+            customer:''
+        };
+
+        //ViewModel
+        var vue = new Vue({
+            el: '#workingArea',
+            data: data4Vue,
+            mounted:function(){ //mounted　表示这个 Vue 对象加载成功了
+                this.list(0);
+                this.getCustomer(cid);
+            },
+            methods: {
+                getCustomer:function(cid){
+                    var url = "customers/"+cid;
+                    axios.get(url).then(function(response) {
+                        vue.customer = response.data;
+                    })
+                },
+                list:function(start){
+                    var url =  "customers/"+cid+"/"+this.uri+"?start="+start;
+                    axios.get(url).then(function(response) {
+                        vue.pagination = response.data;
+                        vue.beans = response.data.content;
+                    });
+                },
+                add: function () {
+                    if(!checkEmpty(this.bean.name, "设备名称"))
+                        return;
+                    if (!checkEmpty(this.bean.location, "设备位置"))
+                        return;
+                    if (!checkEmpty(this.bean.type, "设备类型"))
+                        return;
+                    if (!checkEmpty(this.bean.status, "设备状态"))
+                        return;
+
+                    var url = this.uri;
+                    this.bean.customer.id=cid;
+                    axios.post(url,this.bean).then(function(response){
+                        vue.list(0);
+                        vue.bean =  {id:0,name:'',location:'',type:'',status:'',equipman:'',equipmentDate:'',useDate:'',customer:{'id':0}};
+                    });
+                },
+                deleteBean: function (id) {
+                    if(!checkDeleteLink())
+                        return;
+                    var url = this.uri+"/"+id;
+                    axios.delete(url).then(function(response){
+                        if(0!=response.data.length)
+                            alert(response.data);
+                        else
+                            vue.list(0);
+                    });
+                },
+                jump: function(page){
+                    jump(page,vue); //定义在adminHeader.html 中
+                },
+                jumpByNumber: function(start){
+                    jumpByNumber(start,vue);
+                }
+            }
+
+        });
+    });
+
+</script>
+
+<div id="workingArea" >
+    <ol class="breadcrumb">
+        <li><a href="admin_customer_list">所有客户</a></li>
+        <li><a :href="'admin_equipment_list?cid='+customer.id">{{customer.name}}</a></li>
+        <li class="active">设备管理</li>
+    </ol>
+
+    <div class="listDataTableDiv">
+        <table class="table table-striped table-bordered table-hover table-condensed">
+            <thead>
+            <tr class="success">
+                <th>ID</th>
+                <th>设备名称</th>
+                <th>设备位置</th>
+                <th width="100px">设备类型</th>
+                <th width="100px">设备状态</th>
+                <th width="100px">安装人</th>
+
+                <th width="150px">安装日期</th>
+                <th width="150px">使用日期</th>
+                <th>编辑</th>
+                <th>删除</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="bean in beans ">
+                <td>{{bean.id}}</td>
+                <td>{{bean.name}}</td>
+                <td>{{bean.location}}</td>
+                <td>{{bean.type}}</td>
+                <td>{{bean.status}}</td>
+                <td>{{bean.equipman}}</td>
+                <td v-text="new Date(parseInt(bean.equipDate) ).toLocaleString().substr(0,8)"></td>
+                <td v-text="new Date(parseInt(bean.useDate)).toLocaleString().substr(0,8)"></td>
+                <td>
+                    <a :href="'admin_equipment_edit?id=' + bean.id "><span class="glyphicon glyphicon-edit"></span></a>
+                </td>
+                <td>
+                    <a href="#nowhere"  @click="deleteBean(bean.id)"><span class="   glyphicon glyphicon-trash"></span></a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:replace="include/admin/adminPage::html" ></div>
+
+    <div class="panel panel-warning addDiv">
+        <div class="panel-heading">新增设备</div>
+        <div class="panel-body">
+            <table class="addTable">
+                <tr>
+                    <td>设备名称</td>
+                    <td><input  @keyup.enter="add" v-model.trim="bean.name" type="text" class="form-control"></td>
+                </tr>
+                <tr>
+                    <td>设备位置</td>
+                    <td><input  @keyup.enter="add" v-model.trim="bean.location" type="text"
+                                class="form-control"></td>
+                </tr>
+                <tr>
+                    <td>设备类型</td>
+                    <td><input  @keyup.enter="add" v-model.trim="bean.type"  type="text"
+                                class="form-control"></td>
+                </tr>
+                <tr>
+                    <td>设备状态</td>
+                    <td><input  @keyup.enter="add" v-model.trim="bean.status" type="text"
+                                class="form-control"></td>
+                </tr>
+                <tr>
+                    <td>安装人</td>
+                    <td><input  @keyup.enter="add" v-model.trim="bean.equipman"  type="text"
+                                class="form-control"></td>
+                </tr>
+                <tr>
+                    <td>安装时间</td>
+                    <td><input  @keyup.enter="add" v-model.trim="bean.equipDate"  type="text"
+                                class="form-control"></td>
+                </tr>
+                <tr>
+                    <td>使用时间</td>
+                    <td><input  @keyup.enter="add" v-model.trim="bean.useDate"  type="text"
+                                class="form-control"></td>
+                </tr>
+
+                <tr class="submitTR">
+                    <td colspan="2" align="center">
+                        <a href="#nowhere"  @click="add" class="btn btn-success">提交</a>
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+<div th:replace="include/admin/adminFooter::html" ></div>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<div th:fragment="html">
+    <script>
+        $(function(){
+            var oid=getUrlParms("oid");
+            var data4Vue={
+                uri:"workorders",
+                workorder:{id:oid,orderCode:"",customer:{name:"",address:"",contact:""},errordescription:"",createDate:"",receiveDate:"",fixdescription:""},
+                orderItems:[],
+                conditionOrderImages:[],
+                fixOrderImages:[],
+            };
+            var vue=new Vue({
+                el:"#workingArea",
+                data:data4Vue,
+                mounted:function(){
+                    this.load();
+                    this.listConditions();
+                    this.listFixs();
+                },
+                methods:{
+                    load:function(){
+                        var url=this.uri+"/"+oid;
+                        axios.get(url).then(function(response){
+                            vue.workorder=response.data;
+                            vue.orderItems=vue.workorder.orderItems;
+                        })
+                    },
+                    listConditions:function(){
+                        var url=this.uri+"/"+oid+"/orderImages?type=condition";
+                        axios.get(url).then(function(response){
+                            vue.conditionOrderImages=response.data;
+                        })
+                    },
+                    listFixs:function(){
+                        var url=this.uri+"/"+oid+"/orderImages?type=fix";
+                        axios.get(url).then(function(response){
+                            vue.fixOrderImages=response.data;
+                        })
+                    },
+                }
+            })
+        })
+    </script>
+    <div class="finishPageDiv">
+        <div class="messageshow">
+            <div style="font-size: 20px;margin: 20px 20px; ">工单信息</div>
+            <table class="table" style="margin: 20px 20px;">
+                <tr >
+                    <td>工单码：</td>
+                    <td>{{workorder.orderCode}}</td>
+                </tr>
+                <tr>
+                    <td>工单状态：</td>
+                    <td>{{workorder.statusDesc}}</td>
+                </tr>
+                <tr>
+                    <td>客户单位：</td>
+                    <td>{{workorder.customer.name}}</td>
+                </tr>
+                <tr>
+                    <td>客户地址：</td>
+                    <td>{{workorder.customer.address}}</td>
+                </tr>
+                <tr>
+                    <td>客户电话：</td>
+                    <td>{{workorder.customer.contact}}</td>
+                </tr>
+                <tr>
+                    <td>问题描述：</td>
+                    <td>{{workorder.errordescription}}</td>
+                </tr>
+                <tr>
+                    <td>创建时间：</td>
+                    <td>{{workorder.createDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+                <tr>
+                    <td>接收时间：</td>
+                    <td>{{workorder.receiveDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+                <tr>
+                    <td>处理时间：</td>
+                    <td>{{workorder.fixDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+                <tr>
+                    <td>现场图片：</td>
+                    <td>
+                        <template v-for="oi in conditionOrderImages">
+                            <a title="点击查看原图" :href="'orderCondition/'+oi.id+'.jpg'">
+                                <img height="50px" :src="'orderCondition/'+oi.id+'.jpg'" style="margin: 0px 5px;">
+                            </a>
+                        </template>
+                    </td>
+                </tr>
+                <tr>
+                    <td>处理图片：</td>
+                    <td>
+                        <template v-for="oi in fixOrderImages">
+                            <a title="点击查看原图" :href="'orderFix/'+oi.id+'.jpg'">
+                                <img height="50px" :src="'orderFix/'+oi.id+'.jpg'" style="margin: 0px 5px;">
+                            </a>
+                        </template>
+                    </td>
+                </tr>
+                <tr>
+                    <td>处理设备：</td>
+                    <td>
+                        <template v-for="oi in orderItems">
+                            <span>{{oi.equipment.name}}</span>
+                        </template>
+                    </td>
+                </tr>
+                <tr>
+                    <td>处理描述：</td>
+                    <td>{{workorder.fixdescription}}</td>
+                </tr>
+                <tr>
+                    <td>完成时间：</td>
+                    <td>{{workorder.finishDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>

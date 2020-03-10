@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="include/admin/adminHeader::html('工单管理')"></head>
+<body>
+<div th:replace="include/admin/adminNavigator::html"></div>
+<script>
+    $(function(){
+        var data4Vue={
+            uri:"workorders",
+            bean:{id:"0",customer:{id:""},user:{id:""},errordescription:""},
+            beans:[],
+            pagination:{},
+            customers:[],
+            users:[],
+        };
+        var vue=new Vue({
+            el:"#workingArea",
+            data:data4Vue,
+            mounted:function(){
+                this.list(0);
+                this.getCustomers();
+                this.getUsers();
+            },
+            methods:{
+                list:function(start){
+                    var url=this.uri+"?start="+start;
+                    axios.get(url).then(function(response){
+                      vue.pagination=response.data;
+                      vue.beans=vue.pagination.content;
+                    })
+                },
+                getCustomers:function(){
+                    var url="customers/list";
+                    axios.get(url).then(function (response) {
+                        vue.customers=response.data;
+                    })
+                },
+                getUsers:function(){
+                    var url="users/list";
+                    axios.get(url).then(function(response){
+                        vue.users=response.data;
+                    })
+                },
+                add:function(){
+                    if(!checkEmpty(this.bean.customer.id,"客户单位")){
+                        return;
+                    }
+                    if(!checkEmpty(this.bean.user.id,"维保人员")){
+                        return;
+                    }
+                    if(!checkEmpty(this.bean.errordescription,"问题描述")){
+                        return;
+                    }
+                    var url=this.uri;
+                    axios.post(url,this.bean).then(function(response){
+                        vue.list(0);
+                        vue.bean={id:"0",customer:{id:""},user:{id:""},errordescription:""};
+                    })
+                },
+                showDetails:function(workorder){
+                    var id=workorder.id;
+                    $("#detailsTR"+id).toggle();
+
+                },
+                jump:function(page){
+                    jump(page,vue);
+                },
+                jumpByNumber:function(start){
+                    jumpByNumber(start,vue);
+                },
+            }
+        });
+        Vue.filter("formatDateFilter",function(value,formatString){
+            if(null==value)return "";
+            formatString=formatString || 'YYYY-MM-DD HH:mm:ss';
+            return moment(value).format(formatString);
+        })
+    });
+</script>
+<div id="workingArea">
+    <h1 class="label label-info">工单管理</h1>
+    <br>
+    <br>
+
+    <div class="listDataTableDiv">
+        <table class="table table-striped table-bordered table-hover table-condensed">
+            <thead>
+            <tr class="success">
+                <th>工单码</th>
+                <th>状态</th>
+                <th>客户单位</th>
+                <th>维保人员</th>
+                <th>维保人员电话</th>
+                <th>问题描述</th>
+                <th>创建日期</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <template v-for="bean in beans">
+            <tr>
+                <td>{{bean.orderCode}}</td>
+                <td>{{bean.statusDesc}}</td>
+                <td>{{bean.customer.name}}</td>
+                <td>{{bean.user.name}}</td>
+                <td>{{bean.user.contact}}</td>
+                <td>{{bean.errordescription}}</td>
+                <td>{{bean.createDate | formatDateFilter}}</td>
+                <td>
+                    <a :href="'details?oid='+bean.id" >
+                    <button class="orderPageCheckOrderItems btn btn-primary btn-xs">查看详情</button>
+                    </a>
+                </td>
+            </tr>
+            <tr :id="'detailsTR'+bean.id" style="display: none">
+                <td colspan="7">
+                    <table width="100%" align="center">
+                        <tr>
+                            <th>客户地址</th>
+                            <th>客户电话</th>
+                            <th>维保人员电话</th>
+                            <th>处理设备</th>
+                            <th>处理描述</th>
+                        </tr>
+                        <tr>
+                            <td>{{bean.customer.address}}</td>
+                            <td>{{bean.customer.contact}}</td>
+                            <td>{{bean.user.contact}}</td>
+                            <td></td>
+                            <td>{{bean.fixDescription}}</td>
+                        </tr>
+                        <tr>
+                            <th>接收时间</th>
+                            <th>处理时间</th>
+                            <th>完成时间</th>
+                            <th>现场照片</th>
+                            <th>处理照片</th>
+                        </tr>
+                        <tr>
+                            <td>{{bean.receiveDate | formatDateFilter}}</td>
+                            <td>{{bean.fixDate | formatDateFilter}}</td>
+                            <td>{{bean.finishDate | formatDateFilter}}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+            </template>
+            </tbody>
+        </table>
+    </div>
+    <div th:replace="include/admin/adminPage::html" ></div>
+
+    <div class="panel panel-warning addDiv">
+        <div class="panel panel-heading">新增工单</div>
+        <div class="panel-body">
+            <table class="addTable">
+                <tr>
+                    <td>客户单位</td>
+                    <td>
+                        <select v-model="bean.customer.id" class="form-control">
+                            <option value='' disabled selected style='display:none;'>请选择</option>
+                            <option v-for="customer in customers" :key="customer.id" :value="customer.id">
+                                {{customer.name}}
+                            </option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>维保人员</td>
+                    <td>
+                        <select v-model="bean.user.id" class="form-control">
+                            <option value='' disabled selected style='display:none;'> 请选择</option>
+                            <option v-for="user in users" :key="user.id" :value="user.id">
+                                {{user.name}}
+                            </option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>问题描述</td>
+                    <td><input v-model.trim="bean.errordescription" type="text" class="form-control"></td>
+                </tr>
+                <tr class="submitTR">
+                    <td colspan="2" align="center">
+                        <a href="#nowhere" @click="add" class="btn btn-success">提交</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+</body>
+</html>

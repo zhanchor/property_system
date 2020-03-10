@@ -1,0 +1,288 @@
+<div th:fragment="html">
+    <script>
+        $(function(){
+            var oid=getUrlParms("oid");
+            var data4Vue={
+                uri:"workorders",
+                workorder:{id:oid,orderCode:"",customer:{name:"",address:"",contact:""},errordescription:"",createDate:"",receiveDate:"",fixdescription:""},
+                conditionOrderImages:[],
+                fixOrderImages:[],
+                orderItems:[],
+                file:null,
+                orderItem:{id:0,equipment:{id:""},workorder:{id:oid}},
+                equipments:[]
+            };
+            var vue=new Vue({
+                el:"#workingArea",
+                data:data4Vue,
+                mounted:function(){
+                    this.load();
+                    this.listConditions();
+                    this.listFixs();
+                    this.listOrderItems();
+                },
+                methods:{
+                    load:function(){
+                      var url=this.uri+"/"+oid;
+                      axios.get(url).then(function(response){
+                          vue.workorder=response.data;
+                          vue.getEquipments();
+                      })
+                    },
+                    getEquipments:function(){
+                        var url="customers/"+this.workorder.customer.id+"/allequipments";
+                        axios.get(url).then(function(response){
+                            vue.equipments=response.data;
+                        })
+                    },
+                    listConditions:function(){
+                        var url=this.uri+"/"+oid+"/orderImages?type=condition";
+                        axios.get(url).then(function(response){
+                            vue.conditionOrderImages=response.data;
+                        })
+                    },
+                    listFixs:function(){
+                        var url=this.uri+"/"+oid+"/orderImages?type=fix";
+                        axios.get(url).then(function(response){
+                            vue.fixOrderImages=response.data;
+                        })
+                    },
+                    listOrderItems:function(){
+                        var url="foreorderItems?oid="+oid;
+                        axios.get(url).then(function(response){
+                            var result=response.data;
+                            if(0==result.code){
+                                vue.orderItems=result.data;
+                            }
+                        })
+                    },
+                    addFix:function(){
+                        if(!checkFileEmpty(this.file,"处理图片"))
+                            return;
+                        var url="orderImages?type=fix&oid="+oid;
+                        var formData=new FormData();
+                        formData.append("image",this.file);
+                        axios.post(url,formData).then(function(response){
+                            var result=response.data;
+                            if(0==result.code){
+                                vue.listFixs();
+                                $("#fixPic").val('');
+                                vue.file=null;
+                            }else{
+                                alert(result.message);
+                            }
+                        });
+                    },
+                    addEquipment:function(){
+                        if(!checkFileEmpty(this.orderItem.equipment.id,"设备")){
+                            return;
+                        }
+                        var url="orderItems";
+                        axios.post(url,this.orderItem).then(function(response){
+                            var result=response.data;
+                            if(0==result.code){
+                                vue.listOrderItems();
+                            }else{
+                                alert(result.message);
+                            }
+                        })
+                    },
+                    deletePic:function(id){
+                        if(!checkDeleteLink()){
+                            return;
+                        }
+                        var url="orderImages/"+id;
+                        axios.delete(url).then(function(response){
+                            if(0==response.data.code){
+                                vue.listFixs();
+                            }else{
+                                alert(response.data.message);
+                            }
+                        })
+                    },
+                    deleteOrderItem:function(id){
+                        if(!checkDeleteLink()){
+                            return;
+                        }
+                        var url="orderItems/"+id;
+                        axios.delete(url).then(function(response){
+                            if(0==response.data.code){
+                                vue.listOrderItems();
+                            }else{
+                                alert(response.data.message);
+                            }
+                        })
+                    },
+                    finishOrder:function(){
+                        if(!checkFileEmpty(this.workorder.fixdescription,"处理描述")){
+                            return;
+                        }
+                        if(!checkLink("处理完成")){
+                            return;
+                        }
+                        var url="forefinish";
+                        axios.put(url,this.workorder).then(function(response){
+                            if(0==response.data.code){
+                                location.href="workorder";
+                            }else{
+                                alert(response.data.message);
+                            }
+                        })
+                    },
+                    getFixFile:function(event){
+                        this.file=event.target.files[0];
+                    }
+                }
+            })
+        })
+    </script>
+    <div class="finishPageDiv">
+        <div class="messageshow">
+            <div style="font-size: 20px;margin: 20px 20px; ">工单信息</div>
+            <table class="table" style="margin: 20px 20px;">
+                <tr >
+                    <td>工单码：</td>
+                    <td>{{workorder.orderCode}}</td>
+                </tr>
+                <tr>
+                    <td>客户单位：</td>
+                    <td>{{workorder.customer.name}}</td>
+                </tr>
+                <tr>
+                    <td>客户地址：</td>
+                    <td>{{workorder.customer.address}}</td>
+                </tr>
+                <tr>
+                    <td>客户电话：</td>
+                    <td>{{workorder.customer.contact}}</td>
+                </tr>
+                <tr>
+                    <td>问题描述：</td>
+                    <td>{{workorder.errordescription}}</td>
+                </tr>
+                <tr>
+                    <td>创建时间：</td>
+                    <td>{{workorder.createDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+                <tr>
+                    <td>接收时间：</td>
+                    <td>{{workorder.receiveDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+                <tr>
+                    <td>处理时间：</td>
+                    <td>{{workorder.fixDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</td>
+                </tr>
+                <tr>
+                    <td>现场图片：</td>
+                    <td>
+                    <template v-for="oi in conditionOrderImages">
+                        <a title="点击查看原图" :href="'orderCondition/'+oi.id+'.jpg'">
+                            <img height="50px" :src="'orderCondition/'+oi.id+'.jpg'" style="margin: 0px 5px;">
+                        </a>
+                    </template>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="div4pic">
+            <table class="addPictureAndEquipmentTable" align="center">
+                <tr>
+                    <td class="addPictureTableTD" style="padding:10px 100px;text-align:center;vertical-align: top;">
+                            <div class="panel panel-warning addPictureDiv">
+                                <div class="panel-heading" style="width:400px">新增处理图片</div>
+                                <div class="panel-body" style="width:400px">
+                                    <table class="addTable">
+                                        <tr>
+                                            <td>请选择图片</td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <input id="fixPic" type="file" @change="getFixFile($event)" name="image" />
+                                            </td>
+                                        </tr>
+                                        <tr class="submitTR">
+                                            <td align="center">
+                                                <button type="submit" @click="addFix" class="btn btn-success">提交</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <table class="table-striped table-bordered table-hover table-condensed" width="400px">
+                                <thead>
+                                <tr class="success">
+                                    <th>ID</th>
+                                    <th>处理图片</th>
+                                    <th>删除</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="oi in fixOrderImages">
+                                    <td>{{oi.id}}</td>
+                                    <td><a title="点击查看原图" :href="'orderFix/'+oi.id+'.jpg'">
+                                        <img height="150px" :src="'orderFix/'+oi.id+'.jpg'">
+                                    </a></td>
+                                    <td><a href="#nowhere" @click="deletePic(oi.id)"><span class="glyphicon glyphicon-trash"></span></a></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                    </td>
+
+                    <td class="addEquipmentTableTD" style="padding:10px 100px;text-align:center;vertical-align: top;">
+                        <div class="panel panel-warning addEquipmentDiv">
+                            <div class="panel-heading" style="width:400px">新增处理设备</div>
+                            <div class="panel-body" style="width:400px">
+                                <table class="addTable">
+                                    <tr>
+                                        <td>请选择设备</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <select v-model="orderItem.equipment.id" class="form-control">
+                                                <option value='' disabled selected style='display:none;'> 请选择</option>
+                                                <option v-for="equipment in equipments" :key="equipment.id" :value="equipment.id">
+                                                    {{equipment.name}}
+                                                </option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr class="submitTR">
+                                        <td align="center">
+                                            <button type="submit" @click="addEquipment" class="btn btn-success">提交</button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <table class="table-striped table-bordered table-hover table-condensed" width="400px">
+                            <thead>
+                            <tr class="success">
+                                <th>ID</th>
+                                <th>设备名</th>
+                                <th>设备类型</th>
+                                <th>删除</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="oi in orderItems">
+                                <td>{{oi.equipment.id}}</td>
+                                <td>{{oi.equipment.name}}</td>
+                                <td>{{oi.equipment.type}}</td>
+                                <td><a href="#nowhere" @click="deleteOrderItem(oi.id)"><span class="glyphicon glyphicon-trash"></span></a></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="fordescription" style="margin: 20px 20px;">
+            <span class="leaveMessageText" style="font-size: 20px">处理描述:</span>
+            <br>
+            <textarea name="fixdescription" v-model="workorder.fixdescription" style="width: 60%;height:200px;font-size: 15px"></textarea>
+        </div>
+        <div class="submitOrderDiv">
+            <button type="submit" class="submitOrderButton" @click="finishOrder">处理完成</button>
+        </div>
+    </div>
+</div>

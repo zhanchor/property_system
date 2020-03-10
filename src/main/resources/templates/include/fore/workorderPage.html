@@ -1,0 +1,120 @@
+<div th:fragment="html">
+    <script>
+        $(function(){
+            var data4Vue={
+                uri:"foreworkorders",
+                workorders:[]
+            };
+            var vue=new Vue({
+                el:"#workingArea",
+                data:data4Vue,
+                mounted:function(){
+                    this.load();
+                },
+                methods:{
+                    load:function(){
+                        var url=this.uri;
+                        axios.get(url).then(function(response){
+                            vue.workorders=response.data;
+                            vue.$nextTick(function(){
+                                linkDefaultActions();
+                                orderPageRegisterListeners();
+                            })
+                        })
+                    },
+                    receive:function(oid){
+                        if(!checkLink("接收")){
+                            return;
+                        }
+                        var url="forereceived?oid="+oid;
+                        axios.get(url).then(function(response){
+                            var result=response.data;
+                            if(0==result.code){
+                                vue.load();
+                            }else{
+                                $("span.errorMessage").html("接收失败");
+                                $("div.errorMessageDiv").css("visibility","visible");
+                            }
+                        })
+                    }
+                }
+            })
+        });
+
+        function orderPageRegisterListeners(){
+            $("a[orderStatus]").click(function(){
+                var orderStatus=$(this).attr("orderStatus");
+                if("all"==orderStatus){
+                    $("table[orderStatus]").show();
+                }
+                else{
+                    $("table[orderStatus]").hide();
+                    $("table[orderStatus="+orderStatus+"]").show();
+                }
+                $("div.orderType div").removeClass("selectedOrderType");
+                $(this).parent("div").addClass("selectedOrderType");
+            })
+        }
+    </script>
+    <div class="errorMessageDiv" style="width: 600px;height: 50px; visibility: hidden;">
+        <div class="alert alert-danger" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"></button>
+            <span class="errorMessage"></span>
+        </div>
+    </div>
+
+    <div class="orderDiv">
+        <div class="orderType">
+            <div class="selectedOrderType"><a orderStatus="all" href="#nowhere">所有工单</a></div>
+            <div><a orderStatus="waitReceive" href="#nowhere">等待接收</a></div>
+            <div><a orderStatus="waitFix" href="#nowhere">等待处理</a></div>
+            <div><a orderStatus="waitFinish" href="#nowhere:">正在处理</a></div>
+            <div><a orderStatus="finish" href="#nowhere">已完成</a></div>
+        </div>
+    </div>
+    <div style="clear:both"></div>
+    <div class="orderListTitle">
+        <table class="orderListTitleTable">
+            <tr>
+                <td>客户单位</td>
+                <td width="100px">客户电话</td>
+                <td width="200px">客户地址</td>
+                <td width="200px">问题描述</td>
+                <td width="100px">操作</td>
+            </tr>
+        </table>
+    </div>
+    <div class="orderListItem">
+        <table v-for="o in workorders" class="orderListItemTable" :orderStatus="o.status" :oid="o.id" >
+            <tr class="orderListItemFirstTR">
+                <td colspan="5">
+                    <span>创建时间：<b>{{o.createDate|formatDateFilter("YYYY-MM-DD HH:mm:ss")}}</b></span>
+                    <span style="margin:0px 10px">工单码：{{o.orderCode}}</span>
+                    <span>工单状态：{{o.statusDesc}}</span>
+                </td>
+            </tr>
+            <tr>
+                <td>{{o.customer.name}}</td>
+                <td width="100px">{{o.customer.contact}}</td>
+                <td width="200px" style="text-align:center">{{o.customer.address}}</td>
+                <td width="200px">{{o.errordescription}}</td>
+                <td width="100px">
+                    <a :href="'details?oid='+o.id" >
+                    <button class="orderListItemConfirm" style="margin-bottom: 5px">查看详情</button>
+                    </a>
+                    <a v-if="o.status=='waitReceive'" >
+                        <button class="orderListItemConfirm" @click="receive(o.id)">确认接收</button>
+                    </a>
+
+                    <a v-if="o.status=='waitFix'" :href="'fix?oid='+o.id">
+                        <button class="orderListItemConfirm">开始处理</button>
+                    </a>
+
+                    <a v-if="o.status=='waitFinish'" :href="'finish?oid='+o.id">
+                        <button class="orderListItemConfirm">处理完成</button>
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
